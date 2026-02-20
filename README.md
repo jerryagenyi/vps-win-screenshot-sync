@@ -7,53 +7,51 @@ Syncs local screenshots to a VPS so you can say *"Check the screenshots folder, 
 
 ## 1. Config (already set)
 
-- **LOCAL_SCREENSHOTS:** `C:\Users\Username\OneDrive\Pictures\Screenshots` (script uses WSL path: `/mnt/c/Users/Username/OneDrive/Pictures/Screenshots`)
-- **VPS_HOST:** `100.123.6.36` (Tailscale)
+- **Local folder:** `C:\Users\Username\OneDrive\Pictures\Screenshots`
+- **VPS:** `100.123.6.36` (Tailscale), user `ja`, path `/home/ja/screenshots`
 
-To change anything, edit `screenshot-sync.sh` in this folder. If you use Git Bash instead of WSL, set `LOCAL_SCREENSHOTS` to `/c/Users/Username/OneDrive/Pictures/Screenshots`.
+To change anything, edit `screenshot-sync.ps1` (PowerShell) or `screenshot-sync.sh` (bash) in this folder.
 
-## 2. Install watcher (for continuous sync)
+## 2. Run it (PowerShell)
 
-- **Mac:** `brew install fswatch`
-- **Linux / WSL:** `sudo apt install inotify-tools`
-- **Windows (native):** No built-in watcher; use one-time sync or run from WSL for `--watch`.
-
-## 3. Run it
-
-From this repo directory, in **WSL** or **Git Bash** (so `bash` and `rsync` are available):
+From this repo folder in **PowerShell**:
 
 - **One-time sync:**  
-  `./screenshot-sync.sh` or `bash screenshot-sync.sh`
+  `.\screenshot-sync.ps1`
 
-- **Continuous (sync on new screenshots):**  
-  `./screenshot-sync.sh --watch` or `bash screenshot-sync.sh --watch`
+- **Watch mode (sync when new screenshots appear):**  
+  `.\screenshot-sync.ps1 -Watch`
 
-From anywhere (use full path in WSL):
+You need **OpenSSH** (usually already on Windows 10/11). If `scp` isn’t found, add OpenSSH Client in Settings → Apps → Optional features.
 
-```bash
-bash /mnt/c/Users/Username/Documents/github/vps-win-screenshot-sync/screenshot-sync.sh
-```
-
-If `rsync` is missing, install it (e.g. in WSL: `sudo apt install rsync`).
-
-## 4. Where files end up
+## 3. Where files end up
 
 After sync, screenshots are on the VPS at **`/home/ja/screenshots/`**.
 
-Tell your assistant: *"Check the screenshots folder, there's a new image I want you to see"* (and point to that path if needed).
+## How to verify sync
 
-## Quick test
+1. **One-time sync** — in PowerShell from this repo:
+   ```powershell
+   .\screenshot-sync.ps1
+   ```
+   You should see `Syncing to ja@100.123.6.36:...` then `Sync done.` Any connection/SSH errors need to be fixed first.
 
-1. `cd` to this repo, run `./screenshot-sync.sh --watch`.
-2. Take a screenshot.
-3. Wait for the script to sync.
-4. Ask the assistant to check `/home/ja/screenshots/` on the VPS.
+2. **Check the VPS** — in PowerShell:
+   ```powershell
+   ssh ja@100.123.6.36 "ls -la /home/ja/screenshots/"
+   ```
+   The list should match the files in `C:\Users\Username\OneDrive\Pictures\Screenshots`.
+
+3. **End-to-end:** Take a new screenshot, run `.\screenshot-sync.ps1` again, then the `ssh ... ls` command — the new file should appear on the VPS.
+
+## Bash script (optional)
+
+If you use Git Bash or another bash shell, you can use `screenshot-sync.sh` instead (same config, uses `rsync`). From that shell: `bash screenshot-sync.sh` or `bash screenshot-sync.sh --watch`.
 
 ## Reinstall from VPS (optional)
 
-If you need a fresh copy from the VPS:
+If you need a fresh copy of the bash script from the VPS:
 
-```bash
+```powershell
 scp ja@100.123.6.36:/home/ja/backups/screenshot-sync.sh ./
-chmod +x screenshot-sync.sh
 ```
