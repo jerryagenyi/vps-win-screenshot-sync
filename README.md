@@ -1,102 +1,59 @@
-# VortexBot
+# Screenshot Sync
 
-> Algorithmic mean-reversion trading bot with AI decision layer. Instrument-agnostic, config-driven, **hybrid Python/Node.js architecture**.
+Syncs local screenshots to a VPS so you can say *"Check the screenshots folder, there's a new image I want you to see"* and the assistant can read from the server.
 
-## Current Focus
+**Repo:** [vps-win-screenshot-sync](https://github.com/jerryagenyi/vps-win-screenshot-sync)  
+**Local path:** `C:\Users\Username\Documents\github\vps-win-screenshot-sync`
 
-**VIX 75 (Deriv) Mean-Reversion Strategy** - Phase 1: Hardware Audit & Model Setup
+## 1. Config (already set)
 
-## Philosophy
+- **LOCAL_SCREENSHOTS:** `C:\Users\Username\OneDrive\Pictures\Screenshots` (script uses WSL path: `/mnt/c/Users/Username/OneDrive/Pictures/Screenshots`)
+- **VPS_HOST:** `100.123.6.36` (Tailscale)
 
-Conservative, disciplined, data-driven. No hype.
+To change anything, edit `screenshot-sync.sh` in this folder. If you use Git Bash instead of WSL, set `LOCAL_SCREENSHOTS` to `/c/Users/Username/OneDrive/Pictures/Screenshots`.
 
-- **Risk First**: 1% max risk per trade, enforced by code
-- **Human-in-the-Loop**: LLM suggests, human approves, system executes
-- **Brutal Honesty**: Prove or disprove the edge exists. Both outcomes are valuable.
+## 2. Install watcher (for continuous sync)
 
-## Hybrid Architecture
+- **Mac:** `brew install fswatch`
+- **Linux / WSL:** `sudo apt install inotify-tools`
+- **Windows (native):** No built-in watcher; use one-time sync or run from WSL for `--watch`.
 
-This project uses **two languages for different purposes**:
+## 3. Run it
 
-| Component | Language | Purpose |
-|-----------|----------|---------|
-| **Live Trading** | Node.js | Deriv WebSocket, real-time streaming, order execution, risk enforcement |
-| **Backtesting & Research** | Python | Historical data analysis, backtesting, ML models, strategy optimization |
+From this repo directory, in **WSL** or **Git Bash** (so `bash` and `rsync` are available):
 
-**Why this split?**
-- Python has mature backtesting libraries (Backtrader, VectorBT, Pandas, NumPy) for research
-- Node.js excels at async I/O and real-time WebSocket connections for live trading
+- **One-time sync:**  
+  `./screenshot-sync.sh` or `bash screenshot-sync.sh`
 
-## Project Structure
+- **Continuous (sync on new screenshots):**  
+  `./screenshot-sync.sh --watch` or `bash screenshot-sync.sh --watch`
 
-```
-vortexbot/
-├── node/                    # Node.js live trading
-│   ├── config/              # Strategy and instrument configurations
-│   ├── instruments/         # Deriv symbol mappings
-│   ├── strategies/          # Reusable strategy logic
-│   ├── core/                # Backtester, risk-engine, trade-logger
-│   └── models/              # LLM integration (Ollama)
-├── python/                  # Python backtesting & research
-│   ├── backtest/            # Backtesting engine
-│   ├── strategies/          # Strategy implementations (Python versions)
-│   ├── models/              # ML models (scikit-learn, XGBoost, etc.)
-│   └── notebooks/           # Jupyter notebooks for analysis
-├── data/                    # Shared historical and tick data
-├── logs/                    # Shared trade logs and backtest results
-└── journal/                 # SQLite trade journal database
+From anywhere (use full path in WSL):
+
+```bash
+bash /mnt/c/Users/Username/Documents/github/vps-win-screenshot-sync/screenshot-sync.sh
 ```
 
-## Tech Stack
+If `rsync` is missing, install it (e.g. in WSL: `sudo apt install rsync`).
 
-### Node.js (Live Trading)
-| Component | Technology |
-|-----------|-----------|
-| Runtime | Node.js |
-| Indicators | technicalindicators |
-| WebSocket | ws |
-| Broker API | Deriv WebSocket API |
-| LLM | Ollama (Qwen 2.5 Coder 7B / Phi-3 Mini) |
-| Inference | DirectML (AMD RX 6800 XT) |
+## 4. Where files end up
 
-### Python (Backtesting & Research)
-| Component | Technology |
-|-----------|-----------|
-| Backtesting | Backtrader / VectorBT |
-| Analysis | Pandas / NumPy |
-| ML | scikit-learn / XGBoost |
-| Notebooks | Jupyter |
+After sync, screenshots are on the VPS at **`/home/ja/screenshots/`**.
 
-### Shared
-| Component | Technology |
-|-----------|-----------|
-| Database | SQLite |
-| Data Format | CSV / Parquet |
-| Config | JSON |
+Tell your assistant: *"Check the screenshots folder, there's a new image I want you to see"* (and point to that path if needed).
 
-## Three-Phase Plan
+## Quick test
 
-| Phase | Duration | Goal |
-|-------|----------|------|
-| **Phase 1** | Weeks 1-2 | Hardware Audit & Model Setup |
-| **Phase 2** | Weeks 3-8 | MVP & Backtesting |
-| **Phase 3** | Months 4-15 | Real Capital Testing ($500 start) |
+1. `cd` to this repo, run `./screenshot-sync.sh --watch`.
+2. Take a screenshot.
+3. Wait for the script to sync.
+4. Ask the assistant to check `/home/ja/screenshots/` on the VPS.
 
-## Success Definition
+## Reinstall from VPS (optional)
 
-12+ consecutive months of profitability (after Phase 2 proof).
+If you need a fresh copy from the VPS:
 
-**Failure is also a valid outcome**: If no edge exists by month 12, redirect effort to other work.
-
-## Documentation
-
-- **[PERPLEXITY_SPACE_SYSTEM_PROMPT.md](./PERPLEXITY_SPACE_SYSTEM_PROMPT.md)** - Complete project strategy, phases, and brutal honesty protocol
-- **[CLAUDE.md](./CLAUDE.md)** - Developer guidance for Claude Code
-
-## License
-
-MIT
-
----
-
-*Built with discipline. No hype.*
+```bash
+scp ja@100.123.6.36:/home/ja/backups/screenshot-sync.sh ./
+chmod +x screenshot-sync.sh
+```
